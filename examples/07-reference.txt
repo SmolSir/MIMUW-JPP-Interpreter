@@ -1,0 +1,18 @@
+void plusOne(int i) {
+    i = i + 1;
+}
+
+void plusOneRef(int & i) {
+    i = i + 1;
+}
+
+int main() {
+    int i = 11;
+    printInt(i);
+    plusOne(i);
+    printInt(i);
+    plusOneRef(i);
+    printInt(i);
+
+    return 0;
+}

@@ -1,0 +1,17 @@
+int main() {
+    int a = 1, b = 2, c = 3;
+    int suma = a + b + c;
+    int iloczyn = a * b * c;
+    printInt(suma);
+    printInt(iloczyn);
+
+    boolean t = true;
+    boolean f = false;
+    boolean or = t || f;
+    boolean and = t && f;
+
+    printBoolean(or);
+    printBoolean(and);
+
+    return 0;
+}

@@ -1,0 +1,7 @@
+Dostarczona nam przykładowa gramatyka Latte wzbogacona o:
+- instrukcje break oraz continue,
+- funkcje zwracające wartość,
+- przekazywanie argumentów do funkcji zarówno przez wartość, jak i przez referencję.
+
+Dodatkowo zakładamy istnienie funkcji printInt, print, printBoolean, wypisujących swoje argumenty
+odpowiednich typów (kolejno int, string, bool).
