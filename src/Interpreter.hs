@@ -14,16 +14,16 @@ type Loc = Int
 type Env = Map.Map String Loc
 
 data Value =
-    IntValue    Int    |
-    BoolValue   Bool   |
-    StringValue String |
-    VoidValue          |
-    FunValue    Fun
+    IntValue      Int    |
+    BoolValue     Bool   |
+    StringValue   String |
+    VoidValue            |
+    FunctionValue Function
 
-data Fun =
-    FunByValue     (Value -> InterpreterT Fun) |
-    FunByReference (Loc -> InterpreterT Fun)   |
-    FunBottom      (InterpreterT Value)
+data Function =
+    FunctionByValue     (Value -> InterpreterT Function) |
+    FunctionByReference (Loc -> InterpreterT Function)   |
+    FunctionBottom      (InterpreterT Value)
 
 data InterpreterState = InterpreterState {
     store   :: Map.Map Loc Value,
