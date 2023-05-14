@@ -115,6 +115,67 @@ parseError errorMsg position = fail ("TODO" ++ errorMsg)
 -- execute functions --
 -----------------------
 execute :: [Abs.Stmt] -> InterpreterT (Maybe ReturnT)
+execute [] = return Nothing
+
+execute ((Abs.Empty _) : next) = execute next
+
+execute ((Abs.BStmt _ (Abs.Block _ statements)) : next) = do
+    result <- execute statements
+    case result of
+        Just _  -> return result
+        Nothing -> execute next
+
+execute ((Abs.Decl position itemType ((Abs.NoInit _ (Abs.Ident identifier)) : items)) : next) = do
+    loc <- allocateMemory
+    local (Map.insert identifier loc) (execute ((Abs.Decl position itemType items) : next))
+
+execute ((Abs.Decl position itemType ((Abs.Init _ (Abs.Ident identifier) expression) : items)) : next) = do
+    loc   <- allocateMemory
+    value <- evaluate expression
+    insertIntoStore loc value
+    local (Map.insert identifier loc) (execute ((Abs.Decl position itemType items) : next))
+
+execute ((Abs.Ass _ (Abs.Ident identifier) expression) : next) = do
+    loc   <- getLoc identifier
+    value <- evaluate expression
+    insertIntoStore loc value
+    execute next
+
+execute ((Abs.RetVal _ expression) : _) = fmap justReturnT (evaluate expression)
+
+execute ((Abs.RetVoid _) : _) = return (justReturnT VoidValue)
+
+execute ((Abs.Cond _ expression statement) : next) = do
+    condition <- evaluate expression
+    if boolValue condition then
+        execute (statement : next)
+    else
+        execute next
+
+execute ((Abs.CondElse _ expression statementTrue statementFalse) : next) = do
+    condition <- evaluate expression
+    if boolValue condition then
+        execute (statementTrue  : next)
+    else
+        execute (statementFalse : next)
+
+execute loop@((Abs.While _ expression statement) : next) = do
+    condition <- evaluate expression
+    if boolValue condition then do
+        result <- execute [statement]
+        case result of
+            Just (ReturnType _) -> return result
+            Just Break          -> execute next
+            _                   -> execute loop
+    else
+        execute next
+
+execute ((Abs.Continue _) : _) = return (Just Continue)
+
+execute ((Abs.Break _) : _) = return (Just Break)
+
+execute ((Abs.SExp _ expression) : next) = evaluate expression >> execute next
+
 execute _ = undefined
 
 
@@ -163,7 +224,7 @@ buildFunctionDef ([], body) = do
     env <- ask
     return (
         FunctionBottom (
-                returnTValue . fromJust <$> local (const env) (execute body)
+                fmap (returnTValue . fromJust) (local (const env) (execute body))
             )
         )
 
