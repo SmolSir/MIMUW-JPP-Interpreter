@@ -95,22 +95,22 @@ getLoc identifier = do
     loc <- asks (Map.lookup identifier)
     case loc of
         Just location -> return location
-        Nothing       -> fail ("no item in store named " ++ identifier)
+        Nothing       -> fail ("no item in store named '" ++ identifier ++ "'")
 
 insertIntoStore :: Loc -> Value -> InterpreterT ()
 insertIntoStore loc value =
     modify (\currentState -> currentState { store = Map.insert loc value (store currentState) })
 
 getValue :: String -> Position -> InterpreterT Value
-getValue identifier position = do
+getValue identifier _ = do
     loc <- getLoc identifier
     val <- gets (Map.lookup loc . store)
     case val of
         Just value -> return value
-        Nothing    -> fail ("no value in store for item named " ++ identifier)
+        Nothing    -> fail ("no value in store for item named '" ++ identifier ++ "'")
 
 parseError :: forall a. String -> Position -> InterpreterT a
-parseError errorMsg position = fail ("TODO" ++ errorMsg)
+parseError errorMsg _ = fail errorMsg
 
 -----------------------
 -- execute functions --
@@ -343,7 +343,6 @@ registerDefinedFunctions [] = do
     main >> return ()
 
 registerDefinedFunctions ((loc, function) : t) = do
-    env <- ask
     fun <- function
     insertIntoStore loc (FunctionValue fun)
     registerDefinedFunctions t
