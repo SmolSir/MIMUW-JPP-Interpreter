@@ -1,0 +1,23 @@
+void plusOneByValue(int i) {
+    i = i + 1;
+}
+
+void plusOneByReference(int &i) {
+    i = i + 1;
+}
+
+int main() {
+    int i = 1;
+    printlnString("original value:");
+    println(i);
+
+    plusOneByValue(i);
+    printlnString("after call by value:");
+    println(i);
+
+    plusOneByReference(i);
+    printlnString("after call by reference:");
+    println(i);
+
+    return 0;
+}

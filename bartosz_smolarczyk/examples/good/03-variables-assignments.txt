@@ -1,0 +1,12 @@
+int main() {
+    int i = 1;
+    println(i);
+
+    string s = "Hello world!";
+    printlnString(s);
+
+    boolean b = true;
+    printlnBoolean(b);
+
+    return 0;
+}
