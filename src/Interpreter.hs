@@ -56,25 +56,25 @@ newtype InterpreterT a = InterpreterT {
 ------------------------------
 -- general helper functions --
 ------------------------------
-intValue :: Value -> Int
-intValue (IntValue value) = value
-intValue _                = undefined
+valueToInt :: Value -> Int
+valueToInt (IntValue value) = value
+valueToInt _                = undefined
 
-boolValue :: Value -> Bool
-boolValue (BoolValue value) = value
-boolValue _                 = undefined
+valueToBool :: Value -> Bool
+valueToBool (BoolValue value) = value
+valueToBool _                 = undefined
 
-stringValue :: Value -> String
-stringValue (StringValue value) = value
-stringValue _                   = undefined
+valueToString :: Value -> String
+valueToString (StringValue value) = value
+valueToString _                   = undefined
 
-functionValue :: Value -> Function
-functionValue (FunctionValue value) = value
-functionValue _                     = undefined
+valueToFunction :: Value -> Function
+valueToFunction (FunctionValue value) = value
+valueToFunction _                     = undefined
 
-returnTValue :: ReturnT -> Value
-returnTValue (ReturnType value) = value
-returnTValue _                  = undefined
+returnTToValue :: ReturnT -> Value
+returnTToValue (ReturnType value) = value
+returnTToValue _                  = undefined
 
 justReturnT :: Value -> Maybe ReturnT
 justReturnT = Just . ReturnType
@@ -147,21 +147,21 @@ execute ((Abs.RetVoid _) : _) = return (justReturnT VoidValue)
 
 execute ((Abs.Cond _ expression statement) : next) = do
     condition <- evaluate expression
-    if boolValue condition then
+    if valueToBool condition then
         execute (statement : next)
     else
         execute next
 
 execute ((Abs.CondElse _ expression statementTrue statementFalse) : next) = do
     condition <- evaluate expression
-    if boolValue condition then
+    if valueToBool condition then
         execute (statementTrue  : next)
     else
         execute (statementFalse : next)
 
 execute loop@((Abs.While _ expression statement) : next) = do
     condition <- evaluate expression
-    if boolValue condition then do
+    if valueToBool condition then do
         result <- execute [statement]
         case result of
             Just (ReturnType _) -> return result
@@ -176,21 +176,82 @@ execute ((Abs.Break _) : _) = return (Just Break)
 
 execute ((Abs.SExp _ expression) : next) = evaluate expression >> execute next
 
-execute _ = undefined
-
 
 ------------------------
 -- evaluate functions --
 ------------------------
 evaluate :: Abs.Expr -> InterpreterT Value
-evaluate _ = undefined
+evaluate (Abs.EVar position (Abs.Ident identifier)) = getValue identifier position
+
+evaluate (Abs.ELitInt _ integer) = return (IntValue (fromInteger integer))
+
+evaluate (Abs.ELitTrue _) = return (BoolValue True)
+
+evaluate (Abs.ELitFalse _) = return (BoolValue False)
+
+evaluate (Abs.EApp position (Abs.Ident identifier) expressionList) = do
+    function <- getValue identifier position
+    apply (valueToFunction function) expressionList
+    where
+        apply :: Function -> [Abs.Expr] -> InterpreterT Value
+        apply _ _ = undefined -- TODO!
+
+evaluate (Abs.EString _ string) = return (StringValue string)
+
+evaluate (Abs.Neg _ expression) = fmap IntValue (fmap (((-) 0) . valueToInt) (evaluate expression))
+
+evaluate (Abs.Not _ expression) = fmap BoolValue (fmap (not . valueToBool) (evaluate expression))
+
+evaluate (Abs.EMul position expressionL operator expressionR) = do
+    valueL <- evaluate expressionL
+    valueR <- evaluate expressionR
+    apply (valueToInt valueL) operator (valueToInt valueR)
+    where
+        apply :: Int -> Abs.MulOp -> Int -> InterpreterT Value
+        apply left (Abs.Times _) right = return (IntValue (left * right))
+        apply _    (Abs.Div _)   0     = parseError "division by 0" position
+        apply left (Abs.Div _)   right = return (IntValue (div left right))
+        apply _    (Abs.Mod _)   0     = parseError "modulo by 0" position
+        apply left (Abs.Mod _)   right = return (IntValue (mod left right))
+
+evaluate (Abs.EAdd _ expressionL operator expressionR) = do
+    valueL <- evaluate expressionL
+    valueR <- evaluate expressionR
+    apply (valueToInt valueL) operator (valueToInt valueR)
+    where
+        apply :: Int -> Abs.AddOp -> Int -> InterpreterT Value
+        apply left (Abs.Plus _)  right = return (IntValue (left + right))
+        apply left (Abs.Minus _) right = return (IntValue (left - right))
+
+evaluate (Abs.ERel _ expressionL operator expressionR) = do
+    valueL <- evaluate expressionL
+    valueR <- evaluate expressionR
+    apply (valueToInt valueL) operator (valueToInt valueR)
+    where
+        apply :: Int -> Abs.RelOp -> Int -> InterpreterT Value
+        apply left (Abs.LTH _) right = return (BoolValue (left <  right))
+        apply left (Abs.LE _)  right = return (BoolValue (left <= right))
+        apply left (Abs.GTH _) right = return (BoolValue (left >  right))
+        apply left (Abs.GE _)  right = return (BoolValue (left >= right))
+        apply left (Abs.EQU _) right = return (BoolValue (left == right))
+        apply left (Abs.NE _)  right = return (BoolValue (left /= right))
+
+evaluate (Abs.EAnd _ expressionL expressionR) = do
+    valueL <- evaluate expressionL
+    if valueToBool valueL then
+        evaluate expressionR
+    else return (BoolValue False)
+
+evaluate (Abs.EOr _ expressionL expressionR) = do
+    valueL <- evaluate expressionL
+    if valueToBool valueL then
+        return (BoolValue True)
+    else evaluate expressionR
 
 
 ----------------------------------
 -- interpreter helper functions --
 ----------------------------------
--- getFunctions :: Abs.TopDef -> ([Loc], [(Abs.Ident, ([Abs.Arg], Abs.Block))])
-
 getFunctionIdentifierList :: [Abs.TopDef] -> [String]
 getFunctionIdentifierList topDefList =
     [identifier | (Abs.FnDef _ _ (Abs.Ident identifier) _ _) <- topDefList]
@@ -224,7 +285,7 @@ buildFunctionDef ([], body) = do
     env <- ask
     return (
         FunctionBottom (
-                fmap (returnTValue . fromJust) (local (const env) (execute body))
+                fmap (returnTToValue . fromJust) (local (const env) (execute body))
             )
         )
 
