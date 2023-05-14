@@ -312,7 +312,6 @@ buildInterpreter (Abs.Program _ topDefList) = do
     let env = Map.union (Map.fromList (zip (getFunctionIdentifierList topDefList) locList)) in
         let functionList = zip locList (map buildFunctionDef (getFunctionDefList topDefList)) in
             local env (registerDefaultFunctions $ (registerDefinedFunctions functionList))
-        -- TODO! local env (registerDefaultFunctions $ registerDefinedFunctions [(loc, buildFunctionDef function) | (loc, function) <- zip locList (getFunctionDefList topDefList)])
 
 runInterpreter :: InterpreterT a -> IO (Either String a)
 runInterpreter interpreter =
