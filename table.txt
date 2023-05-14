@@ -12,7 +12,7 @@
 + 10 (obsługa błędów wykonania)
 + 11 (funkcje zwracające wartość)
   Na 30 punktów
-+ 12 (4) (statyczne typowanie)
+  12 (4) (statyczne typowanie)
   13 (2) (funkcje zagnieżdżone ze statycznym wiązaniem)
   14 (1/2) (rekordy/listy/tablice/tablice wielowymiarowe)
   15 (2) (krotki z przypisaniem)
