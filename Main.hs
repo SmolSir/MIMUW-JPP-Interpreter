@@ -13,7 +13,6 @@ interpreter plainText = do
     case pProgram $ myLexer plainText of
         Left  errorMsg -> hPutStrLn stderr errorMsg
         Right program  -> Interpreter.runProgram program
-            -- TODO: add the type-checker here
 
 main :: IO ( )
 main = do
