@@ -1,7 +1,0 @@
-int main() {
-    print("Hello world!");
-    printInt(11);
-    printBoolean(true);
-
-    return 0;
-}

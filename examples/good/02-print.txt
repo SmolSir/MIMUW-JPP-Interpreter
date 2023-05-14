@@ -1,0 +1,11 @@
+int main() {
+    println(11);
+    print(22);
+    printlnString("Hello world!");
+    printString("Welcome world!");
+    printlnBoolean(true);
+    printBoolean(false);
+    printlnString("");
+
+    return 0;
+}

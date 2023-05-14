@@ -1,5 +1,5 @@
 int main() {
-    string s = "Hello world!"
+    string s = "Hello world!";
     int i = 11;
     boolean b = true;
 

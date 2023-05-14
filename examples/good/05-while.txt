@@ -1,10 +1,10 @@
 int main() {
     int i = 11;
     while(i > 0) {
-        printInt(i);
+        println(i);
         i = i - 1;
     }
-    printInt(i);
+    println(i);
 
     return 0;
 }

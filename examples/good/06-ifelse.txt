@@ -2,14 +2,14 @@ int main() {
     if(1 > 0) {
         int i = 11;
         if (i != 11) {
-            print("ekhm?");
+            printlnString("ekhm?");
         }
         else {
-            print("wow.");
+            printlnString("wow.");
         }
     }
     else {
-        print("sus...");
+        printlnString("sus...");
     }
 
     return 0;

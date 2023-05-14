@@ -309,17 +309,33 @@ buildFunctionDef ([], body) = do
 
 registerDefaultFunctions :: InterpreterT () -> InterpreterT ()
 registerDefaultFunctions definedFunctions = do
-    insertIntoStore (-100) (FunctionValue toStringDefault)
-    insertIntoStore (-101) (FunctionValue printDefault)
+    insertIntoStore (-100) (FunctionValue printDefault)
+    insertIntoStore (-101) (FunctionValue printlnDefault)
+    insertIntoStore (-110) (FunctionValue printStringDefault)
+    insertIntoStore (-111) (FunctionValue printlnStringDefault)
+    insertIntoStore (-120) (FunctionValue printBooleanDefault)
+    insertIntoStore (-121) (FunctionValue printlnBooleanDefault)
     local (Map.union (Map.fromList [
-            ("toString", -100),
-            ("print", -101)
+            ("print", -100),
+            ("println", -101),
+            ("printString", -110),
+            ("printlnString", -111),
+            ("printBoolean", -120),
+            ("printlnBoolean", -121)
         ])) definedFunctions
     where
-        toStringDefault = FunctionByValue (\value ->
-            return (FunctionBottom (return (StringValue (show (valueToInt value))))))
-        printDefault    = FunctionByValue (\value ->
+        printDefault        = FunctionByValue (\value ->
+            return (FunctionBottom (liftIO (putStr (show (valueToInt value))) >> return VoidValue)))
+        printlnDefault      = FunctionByValue (\value ->
+            return (FunctionBottom (liftIO (putStr (show (valueToInt value) ++ "\n")) >> return VoidValue)))
+        printStringDefault  = FunctionByValue (\value ->
             return (FunctionBottom (liftIO (putStr (valueToString value)) >> return VoidValue)))
+        printlnStringDefault  = FunctionByValue (\value ->
+            return (FunctionBottom (liftIO (putStr ((valueToString value) ++ "\n")) >> return VoidValue)))
+        printBooleanDefault = FunctionByValue (\value ->
+            return (FunctionBottom (liftIO (putStr (show (valueToBool value))) >> return VoidValue)))
+        printlnBooleanDefault = FunctionByValue (\value ->
+            return (FunctionBottom (liftIO (putStr (show (valueToBool value) ++ "\n")) >> return VoidValue)))
 
 registerDefinedFunctions :: [(Loc, InterpreterT Function)] -> InterpreterT ()
 registerDefinedFunctions [] = do
