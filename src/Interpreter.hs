@@ -48,6 +48,7 @@ newtype InterpreterT a = InterpreterT {
     Applicative,
     Functor,
     Monad,
+    MonadIO,
     MonadReader Env,
     MonadState InterpreterState,
     MonadFail)
@@ -94,7 +95,7 @@ getLoc identifier = do
     loc <- asks (Map.lookup identifier)
     case loc of
         Just location -> return location
-        Nothing       -> fail ("TODO" ++ identifier)
+        Nothing       -> fail ("no item in store named " ++ identifier)
 
 insertIntoStore :: Loc -> Value -> InterpreterT ()
 insertIntoStore loc value =
@@ -106,7 +107,7 @@ getValue identifier position = do
     val <- gets (Map.lookup loc . store)
     case val of
         Just value -> return value
-        Nothing    -> fail ("TODO")
+        Nothing    -> fail ("no value in store for item named " ++ identifier)
 
 parseError :: forall a. String -> Position -> InterpreterT a
 parseError errorMsg position = fail ("TODO" ++ errorMsg)
@@ -134,6 +135,8 @@ execute ((Abs.Decl position itemType ((Abs.Init _ (Abs.Ident identifier) express
     value <- evaluate expression
     insertIntoStore loc value
     local (Map.insert identifier loc) (execute ((Abs.Decl position itemType items) : next))
+
+execute ((Abs.Decl _ _ []) : next) = execute next
 
 execute ((Abs.Ass _ (Abs.Ident identifier) expression) : next) = do
     loc   <- getLoc identifier
@@ -194,7 +197,22 @@ evaluate (Abs.EApp position (Abs.Ident identifier) expressionList) = do
     apply (valueToFunction function) expressionList
     where
         apply :: Function -> [Abs.Expr] -> InterpreterT Value
-        apply _ _ = undefined -- TODO!
+        apply (FunctionByValue fun) (expression : t) = do
+            value   <- evaluate expression
+            nextFun <- fun value
+            apply nextFun t
+        apply (FunctionByReference fun) ((Abs.EVar _ (Abs.Ident ident)) : t) = do
+            loc     <- getLoc ident
+            nextFun <- fun loc
+            apply nextFun t
+        apply (FunctionByReference fun) (expression : t) = do
+            loc     <- allocateMemory
+            value   <- evaluate expression
+            insertIntoStore loc value
+            nextFun <- fun loc
+            apply nextFun t
+        apply (FunctionBottom fun) [] = fun
+        apply _ _ = parseError "incorrect function application" position
 
 evaluate (Abs.EString _ string) = return (StringValue string)
 
@@ -290,7 +308,18 @@ buildFunctionDef ([], body) = do
         )
 
 registerDefaultFunctions :: InterpreterT () -> InterpreterT ()
-registerDefaultFunctions = undefined -- TODO!
+registerDefaultFunctions definedFunctions = do
+    insertIntoStore (-100) (FunctionValue toStringDefault)
+    insertIntoStore (-101) (FunctionValue printDefault)
+    local (Map.union (Map.fromList [
+            ("toString", -100),
+            ("print", -101)
+        ])) definedFunctions
+    where
+        toStringDefault = FunctionByValue (\value ->
+            return (FunctionBottom (return (StringValue (show (valueToInt value))))))
+        printDefault    = FunctionByValue (\value ->
+            return (FunctionBottom (liftIO (putStr (valueToString value)) >> return VoidValue)))
 
 registerDefinedFunctions :: [(Loc, InterpreterT Function)] -> InterpreterT ()
 registerDefinedFunctions [] = do
@@ -324,5 +353,5 @@ runProgram :: Abs.Program -> IO ( )
 runProgram program = do
     returnValue <- runInterpreter $ buildInterpreter program
     case returnValue of
-        Left  errorMsg -> hPutStrLn stderr ("TODO: " ++ errorMsg)
+        Left  errorMsg -> hPutStrLn stderr ("runtime error: " ++ errorMsg)
         Right _        -> return ()
