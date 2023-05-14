@@ -8,7 +8,7 @@ int factorial(int n) {
 }
 
 int main() {
-    println(factorial(11));
+    println(factorial(10));
 
     return 0;
 }

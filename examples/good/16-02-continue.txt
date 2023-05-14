@@ -1,0 +1,14 @@
+int main() {
+    int i = 1;
+
+    // this loop prints only even numbers
+    while (i < 10) {
+        i = i + 1;
+        if (i % 2 == 1) {
+            continue;
+        }
+        println(i);
+    }
+
+    return 0;
+}

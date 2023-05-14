@@ -1,16 +1,20 @@
 int main() {
     int a = 2, b = 4, c = 6;
-    int suma = a + b + c;
-    int iloczyn = a * b * c;
-    println(suma);
-    println(iloczyn);
+
+    int sum = a + b + c;
+    println(sum);
+
+    int product = a * b * c;
+    println(product);
+
 
     boolean t = true;
     boolean f = false;
-    boolean or = t || f;
-    boolean and = t && f;
 
+    boolean or = t || f;
     printlnBoolean(or);
+
+    boolean and = t && f;
     printlnBoolean(and);
 
     return 0;

@@ -1,9 +1,14 @@
 int main() {
-    int i = 11;
-    while(i > 0) {
+    int i = 0;
+    printlnString("before while loop:");
+    println(i);
+
+    while(i < 10) {
         println(i);
-        i = i - 1;
+        i = i + 1;
     }
+
+    printlnString("after while loop:");
     println(i);
 
     return 0;

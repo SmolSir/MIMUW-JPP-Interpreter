@@ -1,11 +1,11 @@
 int main() {
     if(1 > 0) {
-        int i = 11;
-        if (i != 11) {
+        int i = 1;
+        if (i != 1) {
             printlnString("ekhm?");
         }
         else {
-            printlnString("wow.");
+            printlnString("correct!");
         }
     }
     else {
