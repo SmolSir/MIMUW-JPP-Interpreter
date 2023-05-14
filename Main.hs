@@ -20,5 +20,6 @@ main = do
     programArgs <- System.Environment.getArgs
     case programArgs of
         [filePath] -> readFile filePath >>= interpreter
-        []         -> putStrLn "TODO" >> getContents >>= interpreter
-        _          -> die "TODO"
+        []         -> putStrLn "no command line arguments provided -- reading from stdin..."
+                        >> getContents >>= interpreter
+        _          -> die "invalid file path. Provide a valid path or nothing to read from stdin"
