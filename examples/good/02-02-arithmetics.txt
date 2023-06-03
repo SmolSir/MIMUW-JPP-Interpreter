@@ -1,5 +1,6 @@
 int main() {
     int a = 2, b = 4, c = 6;
+    string s = "ab";
 
     int sum = a + b + c;
     println(sum);
@@ -7,15 +8,8 @@ int main() {
     int product = a * b * c;
     println(product);
 
-
-    boolean t = true;
-    boolean f = false;
-
-    boolean or = t || f;
-    printlnBoolean(or);
-
-    boolean and = t && f;
-    printlnBoolean(and);
+    string concat = s + s;
+    printlnString(concat);
 
     return 0;
 }

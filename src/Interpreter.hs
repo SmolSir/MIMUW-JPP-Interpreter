@@ -235,24 +235,34 @@ evaluate (Abs.EMul position expressionL operator expressionR) = do
 evaluate (Abs.EAdd _ expressionL operator expressionR) = do
     valueL <- evaluate expressionL
     valueR <- evaluate expressionR
-    apply (valueToInt valueL) operator (valueToInt valueR)
+    apply valueL operator valueR
     where
-        apply :: Int -> Abs.AddOp -> Int -> InterpreterT Value
-        apply left (Abs.Plus _)  right = return (IntValue (left + right))
-        apply left (Abs.Minus _) right = return (IntValue (left - right))
+        apply :: Value -> Abs.AddOp -> Value -> InterpreterT Value
+        apply (IntValue left) (Abs.Plus _)  (IntValue right) = return (IntValue (left + right))
+        apply (IntValue left) (Abs.Minus _) (IntValue right) = return (IntValue (left - right))
+        apply (StringValue left) (Abs.Plus _) (StringValue right) =
+            return (StringValue (left ++ right))
+        apply _ _ _ = undefined
 
 evaluate (Abs.ERel _ expressionL operator expressionR) = do
     valueL <- evaluate expressionL
     valueR <- evaluate expressionR
-    apply (valueToInt valueL) operator (valueToInt valueR)
+    apply valueL operator valueR
     where
-        apply :: Int -> Abs.RelOp -> Int -> InterpreterT Value
-        apply left (Abs.LTH _) right = return (BoolValue (left <  right))
-        apply left (Abs.LE _)  right = return (BoolValue (left <= right))
-        apply left (Abs.GTH _) right = return (BoolValue (left >  right))
-        apply left (Abs.GE _)  right = return (BoolValue (left >= right))
-        apply left (Abs.EQU _) right = return (BoolValue (left == right))
-        apply left (Abs.NE _)  right = return (BoolValue (left /= right))
+        apply :: Value -> Abs.RelOp -> Value -> InterpreterT Value
+        apply (IntValue left) (Abs.LTH _) (IntValue right) = return (BoolValue (left <  right))
+        apply (IntValue left) (Abs.LE _)  (IntValue right) = return (BoolValue (left <= right))
+        apply (IntValue left) (Abs.GTH _) (IntValue right) = return (BoolValue (left >  right))
+        apply (IntValue left) (Abs.GE _)  (IntValue right) = return (BoolValue (left >= right))
+        apply (IntValue left) (Abs.EQU _) (IntValue right) = return (BoolValue (left == right))
+        apply (IntValue left) (Abs.NE _)  (IntValue right) = return (BoolValue (left /= right))
+        apply (BoolValue left) (Abs.EQU _) (BoolValue right) = return (BoolValue (left == right))
+        apply (BoolValue left) (Abs.NE _)  (BoolValue right) = return (BoolValue (left /= right))
+        apply (StringValue left) (Abs.EQU _) (StringValue right) =
+            return (BoolValue (left == right))
+        apply (StringValue left) (Abs.NE _)  (StringValue right) =
+            return (BoolValue (left /= right))
+        apply _ _ _ = undefined
 
 evaluate (Abs.EAnd _ expressionL expressionR) = do
     valueL <- evaluate expressionL
