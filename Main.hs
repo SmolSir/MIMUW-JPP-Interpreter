@@ -3,16 +3,21 @@ import System.Environment
 import System.Exit
 
 import Control.Monad.Reader
+import Control.Monad.Except
 
 import Grammar.Par
 
+import qualified TypeChecker
 import qualified Interpreter
 
 interpreter :: String -> IO ( )
 interpreter plainText = do
     case pProgram $ myLexer plainText of
         Left  errorMsg -> hPutStrLn stderr errorMsg
-        Right program  -> Interpreter.runProgram program
+        Right program  ->
+            case runExcept $ TypeChecker.checkProgram program of
+                Left  errorMsg -> hPutStrLn stderr errorMsg
+                Right _        -> Interpreter.runProgram program
 
 main :: IO ( )
 main = do
