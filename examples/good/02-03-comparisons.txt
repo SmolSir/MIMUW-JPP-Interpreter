@@ -1,0 +1,19 @@
+int main() {
+    int a = 2, b = 4, c = 6;
+    string abc = "abc";
+    string cba = "cba";
+
+    printlnBoolean(a < b);
+    printlnBoolean(c >= b);
+
+    printlnBoolean(abc == abc);
+    printlnBoolean(abc != cba);
+
+    boolean or = true || false;
+    printlnBoolean(or);
+
+    boolean and = true && false;
+    printlnBoolean(and);
+
+    return 0;
+}
