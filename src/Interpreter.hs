@@ -205,12 +205,6 @@ evaluate (Abs.EApp position (Abs.Ident identifier) expressionList) = do
             loc     <- getLoc ident
             nextFun <- fun loc
             apply nextFun t
-        apply (FunctionByReference fun) (expression : t) = do
-            loc     <- allocateMemory
-            value   <- evaluate expression
-            insertIntoStore loc value
-            nextFun <- fun loc
-            apply nextFun t
         apply (FunctionBottom fun) [] = fun
         apply _ _ = parseError "incorrect function application" position
 
