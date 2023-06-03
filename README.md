@@ -20,7 +20,7 @@ Istnieje tylko jeden konflikt `shift/reduce`, dotyczący `if` oraz `if ... else`
 
 ## Do zrobienia
 - co jeśli nie ma `return` na końcu funkcji?
-- :white_check_mark: leniwość
+- :white_check_mark: leniwość ([`examples/good/05-03-laziness.txt`](https://github.com/SmolSir/MIMUW-JPP-Interpreter/blob/laziness-test/examples/good/05-03-laziness.txt))
 - dlaczego istnieje `apply byRef` na `Expr` innym niż `Var`?
 - porównania na stringach (co najmniej `==` i `/=`)
 - więcej przykładów / jakiś duży przykład
