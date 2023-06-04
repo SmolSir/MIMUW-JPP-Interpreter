@@ -29,6 +29,10 @@ instance Show Type where
 ------------------------------
 -- general helper functions --
 ------------------------------
+showPosition :: Position -> String
+showPosition Nothing = "[unknown]"
+showPosition (Just (line, column)) = "[Ln " ++ show line ++ ", Col " ++ show column ++ "] "
+
 showType :: Type -> String
 showType IntType    = "int"
 showType StringType = "string"
@@ -49,7 +53,7 @@ parseType (Abs.Fun _ returnType argumentTypeList) =
     FunctionType (parseType returnType) (map parseType argumentTypeList)
 
 parseError :: forall a. String -> Position -> TypeCheckerT a
-parseError errorMsg _ = throwE errorMsg
+parseError errorMsg position = throwE ((showPosition position) ++ errorMsg)
 
 compareTypes :: Type -> Type -> String -> Position -> TypeCheckerT ()
 compareTypes typeL typeR errorMsg position =
@@ -221,7 +225,7 @@ checkStatementType (Abs.BStmt position block@(Abs.Block _ _)) = do
         Right (resultEnv, Abs.Block _ itemList) -> local (const resultEnv) (check itemList)
     where
         check []      = return ()
-        check (h : t) = checkStatementType h >> check t
+        check (statement : rest) = checkStatementType statement >> check rest
 
 checkStatementType statement@(Abs.Ass _ (Abs.Ident identifier) expression) = do
     env <- ask
@@ -310,11 +314,75 @@ checkStatementType other =
 ----------------------------------
 -- typechecker helper functions --
 ----------------------------------
+functionArgumentType :: Abs.Arg -> Abs.Type
+functionArgumentType (Abs.ArgByVal _ valueType     _) = valueType
+functionArgumentType (Abs.ArgByRef _ referenceType _) = referenceType
 
+functionArgumentName :: Abs.Arg -> String
+functionArgumentName (Abs.ArgByVal _ _ (Abs.Ident identifier)) = identifier
+functionArgumentName (Abs.ArgByRef _ _ (Abs.Ident identifier)) = identifier
 
+functionArgumentNameList :: Abs.TopDef -> [(String, Type)]
+functionArgumentNameList (Abs.FnDef _ _ _ argumentList _) =
+    zip (map functionArgumentName argumentList) (map (parseType . functionArgumentType) argumentList)
+
+defaultFunctionList :: [(String, Type, Position)]
+defaultFunctionList = [
+    ("print", FunctionType VoidType [IntType], Nothing),
+    ("println", FunctionType VoidType [IntType], Nothing),
+    ("printString", FunctionType VoidType [StringType], Nothing),
+    ("printlnString", FunctionType VoidType [StringType], Nothing),
+    ("printBoolean", FunctionType VoidType [BoolType], Nothing),
+    ("printlnBoolean", FunctionType VoidType [BoolType], Nothing)
+    ]
+
+parseTopLevelFunction :: Abs.TopDef -> (String, Type, Position)
+parseTopLevelFunction (Abs.FnDef position returnType (Abs.Ident identifier) argumentList _) =
+    (identifier,
+     FunctionType (parseType returnType) (map (parseType . functionArgumentType) argumentList),
+     position)
+
+mapTopLevelFunctionList :: [(String, Type, Position)] -> Either String (Map.Map String Type)
+mapTopLevelFunctionList functionList = parseList functionList (return Map.empty)
+    where
+        parseList [] accFunction = accFunction
+        parseList ((identifier, functionType, position) : rest) accFunction = do
+            functionMap <- accFunction
+            if (Map.member identifier functionMap) then
+                Left (
+                    "redefinition of identifier: " ++ show identifier ++
+                    "at position: " ++ showPosition position
+                )
+            else
+                parseList rest (return (Map.insert identifier functionType functionMap))
 
 -------------------------------
 -- typechecker run functions --
 -------------------------------
 checkProgram :: Abs.Program -> Except String ()
-checkProgram = undefined
+checkProgram (Abs.Program _ functionList) = do
+    let topLevelFunctionList = map parseTopLevelFunction functionList in
+        case (mapTopLevelFunctionList (defaultFunctionList ++ topLevelFunctionList)) of
+            Left errorMsg -> throwE errorMsg
+            Right functionDefinitionList ->
+                if (Map.lookup "main" functionDefinitionList /= Just (FunctionType IntType [])) then
+                    throwE "Error: 'main()' function missing"
+                else
+                    checkFunctionList functionList functionDefinitionList topLevelFunctionList
+
+checkFunctionList :: [Abs.TopDef] -> Env -> [(String, Type, Position)] -> Except String ()
+checkFunctionList [] _ _ = return ()
+
+checkFunctionList
+        (functionDefinition@(Abs.FnDef position _ _ _ block) : restDefs)
+        env
+        ((_, (FunctionType returnType _), _) : restTypes) = do
+    case runIdentity (runReaderT (runExceptT (checkStatementType (Abs.BStmt position block))) currentEnv) of
+        Left errorMsg -> throwE errorMsg
+        Right _       -> checkFunctionList restDefs env restTypes
+    where
+        currentEnv = Map.union
+            (Map.insert "return" returnType env)
+            (Map.fromList (functionArgumentNameList functionDefinition))
+
+checkFunctionList _ _ _ = throwE "Error: Unexpected pattern in function checkFunctionList"
