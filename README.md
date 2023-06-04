@@ -26,4 +26,5 @@ Istnieje tylko jeden konflikt `shift/reduce`, dotyczący `if` oraz `if ... else`
   - jakaś dziwna pozostałość, która nie dawała żadnych błędów i się prześlizgnęła
 - :white_check_mark: porównania na stringach i boolean (co najmniej `==` i `/=`), dodawanie na stringach (`+`)
   - [`1b76c76`](https://github.com/SmolSir/MIMUW-JPP-Interpreter/pull/2/commits/1b76c768d849182966416fe447968a5865e1e89d)
-- więcej przykładów / jakiś duży przykład
+- :white_check_mark: więcej przykładów / jakiś duży przykład
+  - więcej małych, dobrych i złych przykładów
