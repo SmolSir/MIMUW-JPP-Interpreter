@@ -79,11 +79,27 @@ checkOperandType expectedType expression returnType errorMsg position = do
         parseError (errorMsg ++ "not possible for type: " ++ show operandType) position
 
 -- Two operands version
-checkOperandsTypes :: Type -> Abs.Expr -> Abs.Expr -> Type -> String -> Position -> TypeCheckerT Type
-checkOperandsTypes expectedType expressionL expressionR returnType errorMsg position = do
+checkOperandsTypes ::
+    [Type] -> Abs.Expr -> Abs.Expr -> [Type] -> String -> Position -> TypeCheckerT Type
+checkOperandsTypes expectedTypeList expressionL expressionR returnTypeList errorMsg position = do
     operandTypeL <- checkExpressionType expressionL
     operandTypeR <- checkExpressionType expressionR
-    if expectedType == operandTypeL && expectedType == operandTypeR then
+    if (elem operandTypeL expectedTypeList) &&
+       (elem operandTypeL returnTypeList) &&
+       (operandTypeL == operandTypeR) -- here we check L == R so only checking L above is sufficient.
+    then
+        return operandTypeL
+    else
+        parseError (errorMsg ++ show operandTypeL ++ " and " ++ show operandTypeR) position
+
+checkComparisonOperandsTypes ::
+    [Type] -> Abs.Expr -> Abs.Expr -> Type -> String -> Position -> TypeCheckerT Type
+checkComparisonOperandsTypes expectedTypeList expressionL expressionR returnType errorMsg position = do
+    operandTypeL <- checkExpressionType expressionL
+    operandTypeR <- checkExpressionType expressionR
+    if (elem operandTypeL expectedTypeList) &&
+       (operandTypeL == operandTypeR) -- here we check L == R so only checking L above is sufficient.
+    then
         return returnType
     else
         parseError (errorMsg ++ show operandTypeL ++ " and " ++ show operandTypeR) position
@@ -126,25 +142,25 @@ checkExpressionType (Abs.Not position expression) =
 
 checkExpressionType (Abs.EMul position expressionL _ expressionR) =
     checkOperandsTypes
-        IntType
+        [IntType]
         expressionL
         expressionR
-        IntType
+        [IntType]
         "Multiplication / division types differ: "
         position
 
 checkExpressionType (Abs.EAdd position expressionL _ expressionR) =
     checkOperandsTypes
-        IntType
+        [IntType, StringType]
         expressionL
         expressionR
-        IntType
+        [IntType, StringType]
         "Addition / subtraction types differ: "
         position
 
 checkExpressionType (Abs.ERel position expressionL _ expressionR) =
-    checkOperandsTypes
-        IntType
+    checkComparisonOperandsTypes
+        [IntType, StringType, BoolType]
         expressionL
         expressionR
         BoolType
@@ -153,19 +169,19 @@ checkExpressionType (Abs.ERel position expressionL _ expressionR) =
 
 checkExpressionType (Abs.EAnd position expressionL expressionR) =
     checkOperandsTypes
-        BoolType
+        [BoolType]
         expressionL
         expressionR
-        BoolType
+        [BoolType]
         "Logical AND types differ: "
         position
 
 checkExpressionType (Abs.EOr  position expressionL expressionR) =
     checkOperandsTypes
-        BoolType
+        [BoolType]
         expressionL
         expressionR
-        BoolType
+        [BoolType]
         "Logical OR types differ: "
         position
 
