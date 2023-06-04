@@ -1,7 +1,0 @@
-int main() {
-    int i;
-    string s;
-    boolean b;
-
-    return 0;
-}
