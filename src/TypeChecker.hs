@@ -2,6 +2,7 @@
 
 module TypeChecker where
 
+import Control.Monad (foldM)
 import Control.Monad.Reader
 import Control.Monad.Trans.Except
 
@@ -9,6 +10,7 @@ import qualified Grammar.Abs as Abs
 
 import qualified Data.Map as Map
 import Data.List
+import Data.Functor.Identity
 
 
 ------------------
@@ -167,9 +169,152 @@ checkExpressionType (Abs.EOr  position expressionL expressionR) =
 ---------------------------------------
 -- statement type checking functions --
 ---------------------------------------
+addDeclarationToEnv :: Env -> Abs.Stmt -> Except String Env
+addDeclarationToEnv env (Abs.Decl _ declarationType itemList) =
+    case sequence [expressionType expression env
+                        | Abs.Init _ (Abs.Ident _) expression <- itemList] of
+        Left  errorMsg -> throwE errorMsg
+        Right _        -> do
+            let variableEnv = Map.fromList
+                    (getVariableListOfType (parseType declarationType) itemList) in
+                if (Map.size variableEnv == length itemList) &&
+                    (Map.null (Map.intersection variableEnv env))
+                then
+                    return (Map.union variableEnv env)
+                else
+                    throwE "Local variable redeclared within a block."
+    where
+        getVariableListOfType :: Type -> [Abs.Item] -> [(String, Type)]
+        getVariableListOfType variableType variableList =
+            [(identifier, variableType) | Abs.Init _ (Abs.Ident identifier) _ <- variableList] ++
+            [(identifier, variableType) | Abs.NoInit _ (Abs.Ident identifier) <- variableList]
+
+addDeclarationToEnv _ nonDeclStatement =
+    throwE ("Unexpected attempt of adding " ++ show nonDeclStatement ++ " to the type environment")
+
+getDeclarationList :: Env -> Abs.Block -> Except String (Env, Abs.Block)
+getDeclarationList env block@(Abs.Block _ allDeclarationList) = do
+    let (declarationList, nonDeclarationList) =
+            (filter isDeclaration allDeclarationList,
+             declarationToAssignmentList =<< allDeclarationList) in
+        case runIdentity (runExceptT (foldM addDeclarationToEnv env declarationList)) of
+            Left  errorMsg  -> throwE errorMsg
+            Right resultEnv -> return (resultEnv, Abs.Block (Abs.hasPosition block) nonDeclarationList)
+    where
+        isDeclaration :: Abs.Stmt -> Bool
+        isDeclaration (Abs.Decl _ _ _) = True
+        isDeclaration _                = False
+
+        declarationToAssignmentList :: Abs.Stmt -> [Abs.Stmt]
+        declarationToAssignmentList (Abs.Decl _ _ itemList) =
+            [Abs.Ass position identifier expression
+                | (Abs.Init position identifier expression) <- itemList]
+        declarationToAssignmentList other = [other]
+
+checkStatementType :: Abs.Stmt -> TypeCheckerT ()
+checkStatementType (Abs.Empty _) = return ()
+
+checkStatementType (Abs.BStmt position block@(Abs.Block _ _)) = do
+    env <- ask
+    case runExcept (getDeclarationList env block) of
+        Left errorMsg -> parseError errorMsg position
+        Right (resultEnv, Abs.Block _ itemList) -> local (const resultEnv) (check itemList)
+    where
+        check []      = return ()
+        check (h : t) = checkStatementType h >> check t
+
+checkStatementType statement@(Abs.Ass _ (Abs.Ident identifier) expression) = do
+    env <- ask
+    case (Map.lookup identifier env, expressionType expression env) of
+        (_                  , Left errorMsg) ->
+            parseError errorMsg (Abs.hasPosition statement)
+        (Nothing,             Right _) ->
+            parseError ("Undefined variable: " ++ identifier) (Abs.hasPosition statement)
+        (Just identifierType, Right exprType) ->
+            compareTypes
+                identifierType
+                exprType
+                ("Cannot assign value of type: " ++ show exprType ++
+                    " to a variable of type: " ++ show identifierType)
+                (Abs.hasPosition statement)
+
+checkStatementType statement@(Abs.RetVal _ expression) = do
+    env <- ask
+    case (Map.lookup "return" env, expressionType expression env) of
+        (_, Left errorMsg) ->
+            parseError errorMsg (Abs.hasPosition statement)
+        (Nothing, Right _) ->
+            parseError "Error: missing return statement" (Abs.hasPosition statement)
+        (Just returnType, Right exprType) ->
+            compareTypes
+                returnType
+                exprType
+                ("Cannot return value of type: " ++ show exprType ++
+                    " from a function of type: " ++ show returnType)
+                (Abs.hasPosition statement)
+
+checkStatementType statement@(Abs.RetVoid _) = do
+    env <- ask
+    case (Map.lookup "return" env) of
+        Just VoidType -> return ()
+        _             ->
+            parseError "Cannot return value from a void function" (Abs.hasPosition statement)
+
+checkStatementType statement@(Abs.Cond _ expression statementTrue) = do
+    env <- ask
+    case (expressionType expression env) of
+        Left errorMsg  -> parseError errorMsg (Abs.hasPosition statement)
+        Right BoolType -> return ()
+        Right _        -> parseError "Error: non-boolean condition" (Abs.hasPosition statement)
+    checkStatementType statementTrue
+
+checkStatementType statement@(Abs.CondElse _ expression statementTrue statementFalse) = do
+    env <- ask
+    case (expressionType expression env) of
+        Left errorMsg  -> parseError errorMsg (Abs.hasPosition statement)
+        Right BoolType -> return ()
+        Right _        -> parseError "Error: non-boolean condition" (Abs.hasPosition statement)
+    checkStatementType statementTrue
+    checkStatementType statementFalse
+
+checkStatementType statement@(Abs.While _ expression statementLoop) = do
+    env <- ask
+    case (expressionType expression env) of
+        Left errorMsg  -> parseError errorMsg (Abs.hasPosition statement)
+        Right BoolType -> return ()
+        Right _        -> parseError "Error: non-boolean condition" (Abs.hasPosition statement)
+    local (Map.insert "insideLoop" BoolType) (checkStatementType statementLoop)
+
+checkStatementType statement@(Abs.Continue _) = do
+    insideLoop <- asks (Map.lookup "insideLoop")
+    case insideLoop of
+        Just _  -> return ()
+        Nothing -> parseError "Continue outside of a loop" (Abs.hasPosition statement)
+
+checkStatementType statement@(Abs.Break _) = do
+    insideLoop <- asks (Map.lookup "insideLoop")
+    case insideLoop of
+        Just _  -> return ()
+        Nothing -> parseError "Break outside of a loop" (Abs.hasPosition statement)
+
+checkStatementType statement@(Abs.SExp _ expression) = do
+    env <- ask
+    case (expressionType expression env) of
+        Left errorMsg -> parseError errorMsg (Abs.hasPosition statement)
+        Right _       -> return ()
+
+checkStatementType other =
+    throwE ("Error: unexpected call of checkStatementType with argument: " ++ show other)
+
+
+----------------------------------
+-- typechecker helper functions --
+----------------------------------
 
 
 
-
+-------------------------------
+-- typechecker run functions --
+-------------------------------
 checkProgram :: Abs.Program -> Except String ()
 checkProgram = undefined
