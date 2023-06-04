@@ -126,8 +126,8 @@ checkExpressionType (Abs.EApp _ (Abs.Ident functionIdentifier) argumentList) = d
                 return returnType
             else
                 throwE (
-                    "Incorrect call of " ++ show function ++ "with arguments (" ++
-                    (intercalate ", " (map show currentTypesList))
+                    "Incorrect call of " ++ show function ++ " with arguments (" ++
+                    (intercalate ", " (map show currentTypesList)) ++ ")"
                 )
         Just _  -> throwE (show functionIdentifier ++ " is not callable")
         Nothing -> throwE (show functionIdentifier ++ " is not callable")

@@ -1,0 +1,8 @@
+int functionNoReturn() {
+
+}
+
+int main() {
+
+    return 0;
+}
