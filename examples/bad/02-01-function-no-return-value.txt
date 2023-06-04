@@ -1,5 +1,5 @@
 int functionNoReturn() {
-
+    return;
 }
 
 int main() {

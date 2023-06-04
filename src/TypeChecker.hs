@@ -261,10 +261,10 @@ checkStatementType statement@(Abs.Ass _ (Abs.Ident identifier) expression) = do
 checkStatementType statement@(Abs.RetVal _ expression) = do
     env <- ask
     case (Map.lookup "return" env, expressionType expression env) of
-        (Nothing, _) ->
-            parseError "Error: missing return statement" (Abs.hasPosition statement)
         (_, Left errorMsg) ->
             parseError errorMsg (Abs.hasPosition statement)
+        (Nothing, _) ->
+            parseError "Error: missing return value" (Abs.hasPosition statement)
         (Just returnType, Right exprType) ->
             compareTypes
                 returnType
