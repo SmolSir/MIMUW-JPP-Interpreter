@@ -261,10 +261,10 @@ checkStatementType statement@(Abs.Ass _ (Abs.Ident identifier) expression) = do
 checkStatementType statement@(Abs.RetVal _ expression) = do
     env <- ask
     case (Map.lookup "return" env, expressionType expression env) of
+        (Nothing, _) ->
+            parseError "Error: missing return statement" (Abs.hasPosition statement)
         (_, Left errorMsg) ->
             parseError errorMsg (Abs.hasPosition statement)
-        (Nothing, Right _) ->
-            parseError "Error: missing return statement" (Abs.hasPosition statement)
         (Just returnType, Right exprType) ->
             compareTypes
                 returnType
@@ -278,7 +278,7 @@ checkStatementType statement@(Abs.RetVoid _) = do
     case (Map.lookup "return" env) of
         Just VoidType -> return ()
         _             ->
-            parseError "Cannot return value from a void function" (Abs.hasPosition statement)
+            parseError "Cannot return void from a non-void function" (Abs.hasPosition statement)
 
 checkStatementType statement@(Abs.Cond _ expression statementTrue) = do
     env <- ask

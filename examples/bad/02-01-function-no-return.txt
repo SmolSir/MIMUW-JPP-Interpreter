@@ -4,5 +4,7 @@ int functionNoReturn() {
 
 int main() {
 
+    int i = functionNoReturn();
+    println(i);
     return 0;
 }
