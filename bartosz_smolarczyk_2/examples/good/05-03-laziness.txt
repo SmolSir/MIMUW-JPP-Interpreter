@@ -1,0 +1,9 @@
+int main() {
+
+    boolean b = true;
+    boolean result = b || (1 % 0 == 1);
+
+    printlnBoolean(result);
+
+    return 0;
+}

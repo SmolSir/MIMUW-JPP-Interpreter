@@ -1,0 +1,9 @@
+void functionWrongArgumentType(int i) {
+    println(i);
+}
+
+int main() {
+    functionWrongArgumentType("abc");
+
+    return 0;
+}

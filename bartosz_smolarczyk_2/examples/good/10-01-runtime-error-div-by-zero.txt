@@ -1,0 +1,10 @@
+void divByZero() {
+    23 / 0;
+    printlnString("successful division by 0");
+}
+
+int main() {
+    divByZero();
+
+    return 0;
+}

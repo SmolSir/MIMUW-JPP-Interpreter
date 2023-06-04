@@ -1,0 +1,15 @@
+int main() {
+    int a = 2, b = 4, c = 6;
+    string s = "ab";
+
+    int sum = a + b + c;
+    println(sum);
+
+    int product = a * b * c;
+    println(product);
+
+    string concat = s + s;
+    printlnString(concat);
+
+    return 0;
+}

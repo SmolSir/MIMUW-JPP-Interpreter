@@ -1,0 +1,10 @@
+void modByZero() {
+    23 % 0;
+    printlnString("successful modular division by 0");
+}
+
+int main() {
+    modByZero();
+
+    return 0;
+}

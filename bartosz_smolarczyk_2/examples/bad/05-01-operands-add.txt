@@ -1,0 +1,7 @@
+int main() {
+    int i = 1;
+    string s = "abc";
+    boolean result = i < s;
+
+    return 0;
+}

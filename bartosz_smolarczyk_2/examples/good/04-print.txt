@@ -1,0 +1,24 @@
+int main() {
+    // int with newline
+    println(11);
+
+    // int without newline
+    print(22);
+
+    // string with newline
+    printlnString("Hello world!");
+
+    // string without newline
+    printString("Welcome world!");
+
+    // boolean with newline
+    printlnBoolean(true);
+
+    // boolean without newline
+    printBoolean(false);
+
+    // standard newline works as well
+    printString("\n");
+
+    return 0;
+}
